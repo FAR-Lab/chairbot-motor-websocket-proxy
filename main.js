@@ -47,16 +47,19 @@ port.on('open', function() {
     if (err) {
       return console.log('Error on write: ', err.message);
     }
-    console.log('Neato Ready!');
+    console.log('Controller Ready!');
   });
-
-
 });
 
 // open errors will be emitted as an error event
 port.on('error', function(err) {
   console.log('Error: ', err.message);
 })
+
+// print all messages from remote
+const ReadLine = require('@serialport/parser-readline');
+const parser = port.pipe(new ReadLine({delimiter: '\n'}));
+parser.on('data', console.log);
 
 /********************* Private Functions *********************/
 
@@ -80,7 +83,7 @@ function round(n, digits) {
 
 // drive the robot from messsages
 function drive(LWheelDist, RWheelDist, Speed, Accel) {
-  var msg = `:{round(LWheelDist, 0)},{round(RWheelDist, 0)}`
+  var msg = `:${round(LWheelDist, 0)},${round(RWheelDist, 0)}\n`
             // 'SetMotor LWheelDist ' + round(LWheelDist, 0) + ' RWheelDist ' + round(RWheelDist, 0) + 
             // ' Speed ' + round(Speed, 0) + '\n';
   nextDriveCommand = msg;
