@@ -1,0 +1,15 @@
+{
+  "name": "chairbotserver",
+  "version": "1.0.0",
+  "description": "Websocket frontend to motor controller",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "J.D. Zamfirescu <zamfire@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "serialport": "^7.1.4",
+    "ws": "^6.1.4"
+  }
+}
