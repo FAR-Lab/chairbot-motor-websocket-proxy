@@ -71,7 +71,7 @@ var nextDriveTimeout = null;
 
 function sendDrive() {
   console.log(nextDriveCommand);
-  port.write(nextDriveCommand);
+  port.write(nextDriveCommand+'\n');
   lastDriveTime = Date.now();
   nextDriveTimeout = null;
 }
@@ -83,7 +83,7 @@ function round(n, digits) {
 
 // drive the robot from messsages
 function drive(LWheelDist, RWheelDist, Speed, Accel) {
-  var msg = `:${round(LWheelDist, 0)},${round(RWheelDist, 0)}\n`
+  var msg = `:${round(LWheelDist, 0)},${round(RWheelDist, 0)}`
             // 'SetMotor LWheelDist ' + round(LWheelDist, 0) + ' RWheelDist ' + round(RWheelDist, 0) + 
             // ' Speed ' + round(Speed, 0) + '\n';
   nextDriveCommand = msg;
