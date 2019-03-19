@@ -37,7 +37,7 @@ wss.on('connection', function connection(ws) {
 var SerialPort = require("serialport");
 
 // Setup the connection to the Neato
-var port = new SerialPort("/dev/ttyACM0", {
+var port = new SerialPort(process.argv[2] || "/dev/ttyACM0", {
   baudRate: 115200
 });
 
