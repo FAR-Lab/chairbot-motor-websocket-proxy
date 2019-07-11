@@ -12,7 +12,7 @@ Author: zamfi
 /********************* Server Functions *********************/
 
 if (process.argv[2] === 'gamepad') {
-    const epislon = 0.01;
+    const epsilon = 0.01;
     
     let leftSpeed = 0;
     let rightSpeed = 0;
@@ -101,8 +101,15 @@ function openPort(portName) {
   return port;
 }
 
-let leftPort = openPort(process.argv[2] || "/dev/ttyS0");
-let rightPort = openPort(process.argv[3] || "/dev/ttyUSB0");
+let p1 = process.argv[2];
+let p2 = process.argv[3];
+if (p1 === 'gamepad') {
+    p1 = p2;
+    p2 = process.argv[4];
+}
+
+let leftPort = openPort(p1 || "/dev/ttyS0");
+let rightPort = openPort(p2 || "/dev/ttyUSB0");
 
     
 /********************* Private Functions *********************/
