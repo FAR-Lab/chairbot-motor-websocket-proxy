@@ -26,47 +26,84 @@ if (process.argv[2] === 'gamepad') {
 
     setInterval(gamepad.processEvents, 16);
 
+    const MINSPEED = 30;
+    const MAXSPEED = 100;
+    const MAXTURN = 100;
+
     gamepad.on('move', function (id, axis, value) {
         console.log("move", {id, axis, value});
         switch (axis) {
         case 1: // left stick
             if (Math.abs(value) > epsilon) {
-                speed = Math.max(30, -value * 100);
+                speed = -Math.sign(value) * Math.max(MINSPEED, Math.abs(value) * MAXSPEED);
             } else {
                 speed = 0;
             }
             break;
         case 2: // right stick
             if (Math.abs(value) > epsilon) {
-                rotation = -value * 100;
+                rotation = value * MAXTURN;
             } else {
                 rotation = 0;
             }
             break;
         }
-        drive(speed + (rotation < -epsilon ? Math.abs(rotation) : 0), speed + (rotation > epsilon ? Math.abs(rotation) : 0));
-    });
-} else {
-    const WebSocket = require('ws');
-    const wss = new WebSocket.Server({ port: 3000 });
+        var leftSpeed, rightSpeed;
+        if (speed > epsilon) {
+            leftSpeed = speed + rotation;
+            rightSpeed = speed - rotation;
 
-    wss.on('connection', function connection(ws) {
-        console.log('connected');
-        ws.on('message', function incoming(message) {
-            if (message == "ping") {
-                ws.send('pong: '+leftPort.isOpen+" & "+rightPort.isOpen)
-                return;
+            if (leftSpeed < MINSPEED) {
+                rightSpeed += MINSPEED-leftSpeed;
+                leftSpeed = MINSPEED;
+            } else if (rightSpeed < MINSPEED) {
+                leftSpeed += MINSPEED-rightSpeed;
+                rightSpeed = MINSPEED;
             }
-            try {
-                message = JSON.parse(message);
-            } catch (e) {
-                console.error("Unable to parse message", message, e);
-                return;
+        } else if (speed < -epsilon) {
+            leftSpeed = speed + rotation;
+            rightSpeed = speed - rotation;
+
+            if (leftSpeed > -MINSPEED) {
+                rightSpeed += -MINSPEED-leftSpeed;
+                leftSpeed = -MINSPEED;
+            } else if (rightSpeed > -MINSPEED) {
+                leftSpeed += -MINSPEED-rightSpeed;
+                rightSpeed = -MINSPEED;
             }
-            drive(message.left, message.right, message.speed, message.accel);
-        });
+        } else if (Math.abs(rotation) > epsilon) {
+            if (Math.abs(rotation) < MINSPEED) {
+                rotation = Math.sign(rotation) * MINSPEED;
+            }
+            leftSpeed = rotation;
+            rightSpeed = -rotation;
+        } else {
+            leftSpeed = rightSpeed = 0;
+        }
+        drive(leftSpeed, rightSpeed);   
     });
 }
+
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({ port: 3000 });
+
+wss.on('connection', function connection(ws) {
+    console.log('connected');
+    ws.on('message', function incoming(message) {
+        if (message == "ping") {
+            ws.send('pong: '+leftPort.isOpen+" & "+rightPort.isOpen)
+            return;
+        }
+        try {
+            message = JSON.parse(message);
+        } catch (e) {
+            console.error("Unable to parse message", message, e);
+            return;
+        }
+        drive(message.left, message.right, message.speed, message.accel);
+    });
+});
+
 /********************* Bot/Control Functions *********************/
 
 
