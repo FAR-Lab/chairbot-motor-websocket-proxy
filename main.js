@@ -11,27 +11,63 @@ Author: zamfi
 
 /********************* Server Functions *********************/
 
-const WebSocket = require('ws');
-const wss = new WebSocket.Server({ port: 3000 });
+if (process.argv[2] === 'gamepad') {
+    const epislon = 0.01;
+    
+    let leftSpeed = 0;
+    let rightSpeed = 0;
 
-wss.on('connection', function connection(ws) {
-  console.log('connected');
-  ws.on('message', function incoming(message) {
-    if (message == "ping") {
-      ws.send('pong: '+leftPort.isOpen+" & "+rightPort.isOpen)
-      return;
+    const gamepad = require('gamepad');
+    gamepad.init();
+    if (gamepad.numDevices() !== 1) {
+        console.error("Hmm...expected 1 device, instead saw", gamepad.numDevices());
+        process.exit();
     }
-    try {
-      message = JSON.parse(message);
-    } catch (e) {
-      console.error("Unable to parse message", message, e);
-      return;
-    }
-    drive(message.left, message.right, message.speed, message.accel);
-  });
-});
 
-/********************* Neato Functions *********************/
+    setInterval(gamepad.processEvents, 16);
+
+    gamepad.on('move', function (id, axis, value) {
+        console.log("move", {id, axis, value});
+        switch (axis) {
+        case 1: // left stick
+            if (Math.abs(value) > epsilon) {
+                leftSpeed = -value * 100;
+            } else {
+                leftSpeed = 0;
+            }
+            break;
+        case 3: // right stick
+            if (Math.abs(value) > epsilon) {
+                rightSpeed = -value * 100;
+            } else {
+                rightSpeed = 0;
+            }
+            break;
+        }
+        drive(leftSpeed, rightSpeed);
+    });
+} else {
+    const WebSocket = require('ws');
+    const wss = new WebSocket.Server({ port: 3000 });
+
+    wss.on('connection', function connection(ws) {
+        console.log('connected');
+        ws.on('message', function incoming(message) {
+            if (message == "ping") {
+                ws.send('pong: '+leftPort.isOpen+" & "+rightPort.isOpen)
+                return;
+            }
+            try {
+                message = JSON.parse(message);
+            } catch (e) {
+                console.error("Unable to parse message", message, e);
+                return;
+            }
+            drive(message.left, message.right, message.speed, message.accel);
+        });
+    });
+}
+/********************* Bot/Control Functions *********************/
 
 
 var SerialPort = require("serialport");
@@ -48,7 +84,7 @@ function openPort(portName) {
       if (err) {
         return console.log('Error on write: ', err.message);
       }
-      console.log('Controller Ready!');
+      console.log('Controller ready on port ' + portName);
     });
   });
     
@@ -65,8 +101,8 @@ function openPort(portName) {
   return port;
 }
 
-let leftPort = openPort(process.argv[2] || "/dev/ttyACM0");
-let rightPort = openPort(process.argv[3] || "/dev/ttyS0");
+let leftPort = openPort(process.argv[2] || "/dev/ttyS0");
+let rightPort = openPort(process.argv[3] || "/dev/ttyUSB0");
 
     
 /********************* Private Functions *********************/

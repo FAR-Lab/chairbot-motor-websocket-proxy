@@ -9,6 +9,7 @@
   "author": "J.D. Zamfirescu <zamfire@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "gamepad": "^1.6.0",
     "serialport": "^7.1.4",
     "ws": "^6.1.4"
   }
