@@ -18,7 +18,7 @@ wss.on('connection', function connection(ws) {
   console.log('connected');
   ws.on('message', function incoming(message) {
     if (message == "ping") {
-      ws.send('pong: '+port.isOpen)
+      ws.send('pong: '+leftPort.isOpen+" & "+rightPort.isOpen)
       return;
     }
     try {
@@ -36,31 +36,39 @@ wss.on('connection', function connection(ws) {
 
 var SerialPort = require("serialport");
 
-// Setup the connection to the Neato
-var port = new SerialPort(process.argv[2] || "/dev/ttyACM0", {
-  baudRate: 115200
-});
-
-// Open the port and put the robot into testmode ON so we can drive
-port.on('open', function() {
-  port.write('id' + '\n', function(err) {
-    if (err) {
-      return console.log('Error on write: ', err.message);
-    }
-    console.log('Controller Ready!');
+function openPort(portName) {  
+  // Setup the connection to the Neato
+  var port = new SerialPort(portName, {
+    baudRate: 115200
   });
-});
+    
+  // Open the port and put the robot into testmode ON so we can drive
+  port.on('open', function() {
+    port.write('id' + '\n', function(err) {
+      if (err) {
+        return console.log('Error on write: ', err.message);
+      }
+      console.log('Controller Ready!');
+    });
+  });
+    
+  // open errors will be emitted as an error event
+  port.on('error', function(err) {
+      console.log(`Error (${portName}):`, err.message);
+  })
+    
+  // print all messages from remote
+  const ReadLine = require('@serialport/parser-readline');
+  const parser = port.pipe(new ReadLine({delimiter: '\n'}));
+  parser.on('data', console.log);
+    
+  return port;
+}
 
-// open errors will be emitted as an error event
-port.on('error', function(err) {
-  console.log('Error: ', err.message);
-})
+let leftPort = openPort(process.argv[2] || "/dev/ttyACM0");
+let rightPort = openPort(process.argv[3] || "/dev/ttyS0");
 
-// print all messages from remote
-const ReadLine = require('@serialport/parser-readline');
-const parser = port.pipe(new ReadLine({delimiter: '\n'}));
-parser.on('data', console.log);
-
+    
 /********************* Private Functions *********************/
 
 var DRIVE_COMMAND_INTERVAL = 20; // ms between SetMotor commands.
@@ -70,8 +78,9 @@ var nextDriveCommand;
 var nextDriveTimeout = null;
 
 function sendDrive() {
-  console.log(nextDriveCommand);
-  port.write(nextDriveCommand+'\n');
+  console.log(JSON.stringify(nextDriveCommand));
+  leftPort.write(`\r\nL${Math.round(nextDriveCommand.left)},R${Math.round(nextDriveCommand.right)}\r\n`);
+  rightPort.write(`\r\nL${Math.round(nextDriveCommand.right)},R${Math.round(nextDriveCommand.left)}\r\n`);
   lastDriveTime = Date.now();
   nextDriveTimeout = null;
 }
@@ -83,7 +92,7 @@ function round(n, digits) {
 
 // drive the robot from messsages
 function drive(LWheelDist, RWheelDist, Speed, Accel) {
-  var msg = `:${round(LWheelDist, 0)},${round(RWheelDist, 0)}`
+  var msg = {left: LWheelDist, right: -RWheelDist} // `:${round(LWheelDist, 0)},${round(RWheelDist, 0)}`
             // 'SetMotor LWheelDist ' + round(LWheelDist, 0) + ' RWheelDist ' + round(RWheelDist, 0) + 
             // ' Speed ' + round(Speed, 0) + '\n';
   nextDriveCommand = msg;
