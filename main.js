@@ -12,11 +12,11 @@ Author: zamfi
 /********************* Server Functions *********************/
 
 if (process.argv[2] === 'gamepad') {
-    const epsilon = 0.01;
+    const epsilon = 0.1;
     
-    let leftSpeed = 0;
-    let rightSpeed = 0;
-
+    let speed = 0;
+    let rotation = 0;
+    
     const gamepad = require('gamepad');
     gamepad.init();
     if (gamepad.numDevices() !== 1) {
@@ -31,20 +31,20 @@ if (process.argv[2] === 'gamepad') {
         switch (axis) {
         case 1: // left stick
             if (Math.abs(value) > epsilon) {
-                leftSpeed = -value * 100;
+                speed = Math.max(30, -value * 100);
             } else {
-                leftSpeed = 0;
+                speed = 0;
             }
             break;
-        case 3: // right stick
+        case 2: // right stick
             if (Math.abs(value) > epsilon) {
-                rightSpeed = -value * 100;
+                rotation = -value * 100;
             } else {
-                rightSpeed = 0;
+                rotation = 0;
             }
             break;
         }
-        drive(leftSpeed, rightSpeed);
+        drive(speed + (rotation < -epsilon ? Math.abs(rotation) : 0), speed + (rotation > epsilon ? Math.abs(rotation) : 0));
     });
 } else {
     const WebSocket = require('ws');
